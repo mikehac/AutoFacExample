@@ -1,4 +1,5 @@
 ﻿using Autofac;
+using Autofac.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,10 +13,17 @@ namespace WebApplicationCore31
     {
         protected override void Load(ContainerBuilder builder)
         {
-            builder.RegisterType<Service1>().As<IService1>();
-            builder.RegisterType<Service2>().As<IService2>();
-            builder.RegisterType<Generic>().As<IGeneric>().WithParameter("apiName", "From Service 1");
-            builder.RegisterType<Generic>().As<IGeneric>().WithParameter("apiName", "From Service 2");
+            builder.RegisterType<Generic>().As<IGeneric>().WithParameter("apiName", "From Service 1").Keyed<IGeneric>("Service1");
+            builder.RegisterType<Generic>().As<IGeneric>().WithParameter("apiName", "From Service 2").Keyed<IGeneric>("Service2");
+            builder.RegisterType<Service1>().As<IService1>()
+                .WithParameter(new ResolvedParameter(
+                        (pi, ctx) => pi.ParameterType == typeof(IGeneric),
+                        (pi, ctx) => ctx.ResolveKeyed<IGeneric>("Service1")
+                    ));
+            builder.RegisterType<Service2>().As<IService2>()
+                .WithParameter(new ResolvedParameter(
+                        (pi, ctx) => pi.ParameterType == typeof(IGeneric),
+                        (pi, ctx) => ctx.ResolveKeyed<IGeneric>("Service2")));
         }
     }
 }
